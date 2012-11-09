@@ -1,0 +1,3 @@
+[submodule "picons"]
+	path = picons
+	url = git://github.com/ocram/picons.git
