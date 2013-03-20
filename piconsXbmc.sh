@@ -6,8 +6,12 @@ git pull;
 # initialize the submodules
 git submodule init
 
+# pull the latest version for the submodules
+git submodule foreach git pull origin master
+
 # update the submoudles
-git submodule update
+#git submodule update
+
 
 # create picons symlinks
 sh ./picons/picons.sh ./picons/picons
@@ -20,7 +24,7 @@ mkdir -p xbmc_icons;
 rm xbmc_icons/*
 
 # call the python script in copy mode
-python2 xbmcIconLinks.py -p ./picons/picons/ -m c > createXbmcIonsLinks.sh
+#ython2 xbmcIconLinks.py -p ./picons/picons/ -m c > createXbmcIonsLinks.sh
 
 # run the sh
 sh createXbmcIonsLinks.sh 
