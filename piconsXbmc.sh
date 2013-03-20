@@ -1,4 +1,4 @@
-#!//bin/bash
+#!/bin/bash
 
 #update the script folder for any changes
 git pull;
