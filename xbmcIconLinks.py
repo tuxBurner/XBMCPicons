@@ -6,7 +6,41 @@ import os, os.path
 import re
 import sys
 
-class Channels(object):
+class Srindex(object):
+    """ Parses a .srindex file for the mapping from a channel to img file """
+
+    srindexInfos = dict()
+
+    def __init__(self, srindex_file = './picons/tv.srindex'):
+        """Reads the tv.srindex file """
+
+        try:
+            # Open channels.conf
+            srindexFile = open(srindex_file, 'r')
+        except IOError:
+            # Not found / not accessible
+            sys.exit ('ERROR: Could not open %s' % srindex_file)
+
+        currStation = ''  
+        for srindexLine in srindexFile:
+            strippedLine = srindexLine.strip() 
+            # means here starts some channelInformations
+            if strippedLine.startswith('#') :
+                # remove #_ by 2: and strip whitespaces and set it to currStation
+                currStation = strippedLine[2:]    
+                continue    
+            # ignore all --- starting lines    
+            if strippedLine.startswith('---') :
+                continue 
+            # skip empty lines    
+            if not strippedLine :
+                continue    
+            # line contains hash stuff for the channel which matches Channels so we have hash to channelname
+            self.srindexInfos[strippedLine] = currStation
+
+
+
+class Channels(Srindex):
     """ Holds all the information and routines related to
         linking VDR channels to picons via their respective
         servicerefs. """
@@ -17,8 +51,10 @@ class Channels(object):
         """ Initialize, read and store the channels from
             a given channels.conf. """
 
+        #hier noch den parameter von srindex setzen  
+        super(Channels, self).__init__()
+
         self.tvonly = tvonly
-        
 
         try:
             # Open channels.conf
@@ -47,7 +83,7 @@ class Channels(object):
         """ Provides a dictionary of
               ('Channel name': 'serviceref')
             items, e.g.
-              ('Das Erste HD;ARD': '1_0_19_2B5C_41B_A401_FFFF0000_0_0_0') """
+              ('Das Erste HD;ARD': '2B5C_41B_A401_FFFF0000') """
  
         def _createserviceref(source, freq, vpid, sid, nid, tid):
             """ Subroutine for creating a single service reference.
@@ -55,15 +91,12 @@ class Channels(object):
 
             # Analyze the 'vpid' as early as possible to skip unwanted
             # channels (e.g. set by 'self.tvonly' more quickly).
-            type = 1
-
             if (vpid == '0') or (vpid == '1'):
 
                 # Skip channels of type '2', if 'self.tvonly' is set.
                 if self.tvonly:
                     return
 
-                type = 2
 
             # usually (on Enigma) the frequency is part of the namespace
             # for picons this seems to be unused, so disable it by now
@@ -101,13 +134,7 @@ class Channels(object):
             if '=' in vpid:
                 (pid, streamtype) = [x.strip() for x in vpid.split('=')]
 
-                if streamtype == '2':
-                    type = 1
-                if streamtype == '27':
-                    type = 19
-
-            return '1_0_%i_%X_%X_%X_%X_0_0_0' % (
-                    type,
+            return '%X_%X_%X_%X' % (
                     sid,
                     tid,
                     nid,
@@ -155,11 +182,11 @@ class PIcons(Channels):
             piconDirList = os.listdir(picons_dir)
         except OSError:
             # Not found / not accessible.
-            sys.exit ('ERROR: Could open %s' % picons_dir)
+            sys.exit ('ERROR: Couldn\'t open %s' % picons_dir)
 
-        # Filter for '.png' which start with 1_ files and are symlinks.
+        # Filter for '.png' and '.svg'.
         def png(x):
-           return x.startswith('1_') and x.endswith('.png') and os.path.islink(os.path.join(picons_dir, x))
+           return  x.endswith('.png') or x.endswith('.svg')
         piconDirList = filter(png, piconDirList)
 
 
@@ -168,7 +195,7 @@ class PIcons(Channels):
             sys.exit ('ERROR: The directory %s does not contain any picons.' % picons_dir)
 
         # Fill class variable
-        self.picons = [x[:-4] for x in piconDirList]
+        self.picons = [x for x in piconDirList]
 
         self.dest_dir = dest_dir
         self.picons_dir = picons_dir
@@ -182,23 +209,34 @@ class PIcons(Channels):
         unmatched = []
 
         serviceRefs = self.servicerefs()
-
-        for serviceRef  in serviceRefs: 
-            if serviceRef in self.picons:
-                channelPngName = serviceRefs[serviceRef]
-                channelPngName = channelPngName.rsplit(';', 1)[0].rsplit(',',1)[0]
-                links[serviceRef] = (channelPngName)
+        for serviceRef  in serviceRefs:
+            # icons not mapped should go into umateched
+            if not self.srindexInfos.has_key(serviceRef) : 
+                unmatched.append(serviceRef)
                 continue
 
-            unmatched.append(serviceRef)
+            channelPngName = self.srindexInfos[serviceRef]
+            # use the channel name from the channels.conf so xbmc can map it
+            xbmcIconName = serviceRefs[serviceRef];
+            links[channelPngName] = (xbmcIconName.rsplit(';', 1)[0].rsplit(',',1)[0])    
+            
+            #if serviceRef in self.picons:
+            #    channelPngName = serviceRefs[serviceRef]
+            #    channelPngName = channelPngName.rsplit(';', 1)[0].rsplit(',',1)[0]
+            #    links[serviceRef] = (channelPngName)
+            #    continue
+
+            
         
-        for (serviceRef, channelName) in sorted(links.iteritems()):            
+        for (iconName, channelName) in sorted(links.iteritems()):            
+            #check svg or png
+            fileEnding = '.svg'
+            if iconName+'.png' in self.picons :
+              fileEnding = '.png'               
 
             channelName = channelName.replace('/',' ')
-
-
-            srcPath = os.path.abspath(self.picons_dir+'/'+serviceRef+'.png')
-            destPath = os.path.abspath(self.dest_dir+'/'+channelName+'.png')
+            srcPath = os.path.abspath(self.picons_dir+'/'+iconName+fileEnding)
+            destPath = os.path.abspath(self.dest_dir+'/'+channelName+fileEnding)
 
             if self.mode == 'l':
                 print 'ln -sf "%s" "%s"' % (srcPath,destPath)
