@@ -9,10 +9,11 @@ import sys
 class Srindex(object):
     """ Parses a .srindex file for the mapping from a channel to img file """
 
+    srindexInfos = dict()
+
     def __init__(self, srindex_file = './picons/tv.srindex'):
         """Reads the tv.srindex file """
 
-        print("Muuush")
         try:
             # Open channels.conf
             srindexFile = open(srindex_file, 'r')
@@ -34,10 +35,8 @@ class Srindex(object):
             # skip empty lines    
             if not strippedLine :
                 continue    
-            # line contains hash stuff for the channel which matches Channels    
-            print(srindexLine)    
-
-
+            # line contains hash stuff for the channel which matches Channels so we have hash to channelname
+            self.srindexInfos[strippedLine] = currStation
 
 
 
@@ -185,9 +184,9 @@ class PIcons(Channels):
             # Not found / not accessible.
             sys.exit ('ERROR: Couldn\'t open %s' % picons_dir)
 
-        # Filter for '.png' which start with 1_ files and are symlinks.
+        # Filter for '.png' and '.svg'.
         def png(x):
-           return  x.endswith('.png')
+           return  x.endswith('.png') or x.endswith('.svg')
         piconDirList = filter(png, piconDirList)
 
 
@@ -210,21 +209,28 @@ class PIcons(Channels):
         unmatched = []
 
         serviceRefs = self.servicerefs()
-
-        for serviceRef  in serviceRefs: 
-            if serviceRef in self.picons:
-                channelPngName = serviceRefs[serviceRef]
-                channelPngName = channelPngName.rsplit(';', 1)[0].rsplit(',',1)[0]
-                links[serviceRef] = (channelPngName)
+        for serviceRef  in serviceRefs:
+            # icons not mapped should go into umateched
+            if not self.srindexInfos.has_key(serviceRef) : 
+                print(serviceRef+ ' '+serviceRefs[serviceRef])
+                unmatched.append(serviceRef)
                 continue
 
-            unmatched.append(serviceRef)
+            channelPngName = self.srindexInfos[serviceRef]
+            # use the channel name from the channels.conf so xbmc can map it
+            xbmcIconName = serviceRefs[serviceRef];
+            links[channelPngName] = (xbmcIconName.rsplit(';', 1)[0].rsplit(',',1)[0])    
+            
+            #if serviceRef in self.picons:
+            #    channelPngName = serviceRefs[serviceRef]
+            #    channelPngName = channelPngName.rsplit(';', 1)[0].rsplit(',',1)[0]
+            #    links[serviceRef] = (channelPngName)
+            #    continue
+
+            
         
         for (serviceRef, channelName) in sorted(links.iteritems()):            
-
             channelName = channelName.replace('/',' ')
-
-
             srcPath = os.path.abspath(self.picons_dir+'/'+serviceRef+'.png')
             destPath = os.path.abspath(self.dest_dir+'/'+channelName+'.png')
 
