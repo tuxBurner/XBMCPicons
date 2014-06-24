@@ -8,11 +8,13 @@ git submodule sync
 # initialize the submodules
 git submodule init
 
+git submodule foreach git checkout HEAD
+
 # pull the latest version for the submodules
 git submodule foreach git pull origin master
 
 # update the submoudles
-git submodule update
+#git submodule update
 
 # rem old picons symlinks
 #rm ./picons/picons/1_0*.png
