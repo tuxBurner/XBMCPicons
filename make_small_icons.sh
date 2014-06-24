@@ -22,7 +22,7 @@ rm *.svg
 mkdir backgrounded
 for f in *.png; do
   echo "Processing $f file..";
-  convert ../picons/backgrounds/xvdr/reflection-black.png "$f" -gravity center -composite -resize 128X128 "backgrounded/$f"
+  convert ../picons/backgrounds/xvdr/grey-white.png "$f" -gravity center -composite -resize 128X128 "backgrounded/$f"
 done
 rm *.png
 mv backgrounded/*.png ./
