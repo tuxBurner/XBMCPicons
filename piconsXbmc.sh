@@ -4,7 +4,7 @@ PICONS_GIT_REPO="https://github.com/picons/picons-source.git"
 
 #update the script folder for any changes
 echo "Checking if Script is up to date"
-git pull origin master
+#git pull origin master
 
 # get the picons :)
 if [ ! -d "./picons" ]; then
@@ -14,7 +14,7 @@ fi
 
 echo "Update picons"
 cd ./picons
-git pull origin master
+#git pull origin master
 cd ..
 
 
@@ -29,7 +29,7 @@ echo "Deleting old xbmc_icons"
 rm xbmc_icons/*
 
 # call the python script in copy mode
-python2 xbmcIconLinks.py -p ./picons/build-source/tv/ -c ./channels.conf -m c > createXbmcIonsLinks.sh
+python2 xbmcIconLinks.py -p ./picons/build-source/tv -m c > createXbmcIonsLinks.sh
 
 # run the sh
 sh createXbmcIonsLinks.sh
