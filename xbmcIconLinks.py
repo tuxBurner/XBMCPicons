@@ -12,7 +12,7 @@ class Srindex(object):
     srindexInfos = dict()
 
     def __init__(self, srindex_file = './picons/build-source/srindex'):
-        """Reads the tv.srindex file """
+        """Reads the srindex file """
 
         try:
             # Open channels.conf
@@ -31,7 +31,9 @@ class Srindex(object):
             # means here starts some channelInformations
             (stationHash, station) = strippedLine.split('=')
             # line contains hash stuff for the channel which matches Channels so we have hash to channelname
-            self.srindexInfos[stationHash] = station
+            # the new srindex format points to a sub dir we have to split it
+            (path,stationSpl) = station.split("/",1)
+            self.srindexInfos[stationHash] = stationSpl
 
 
 
