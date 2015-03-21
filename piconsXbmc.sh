@@ -1,36 +1,35 @@
 #!/bin/bash
 
+PICONS_GIT_REPO="https://github.com/picons/picons-source.git"
+
 #update the script folder for any changes
-git pull;
+echo "Checking if Script is up to date"
+git pull origin master
 
-git submodule sync
+# get the picons :)
+if [ ! -d "./picons" ]; then
+ echo "Picons dir does not exist. Cloning it from: $PICONS_GIT_REPO";
+ git clone  --depth 1 --branch master $PICONS_GIT_REPO ./picons;
+fi
 
-# initialize the submodules
-git submodule init
-
-git submodule foreach git checkout HEAD
-
-# pull the latest version for the submodules
-git submodule foreach git pull origin master
-
-# update the submoudles
-#git submodule update
-
-# rem old picons symlinks
-#rm ./picons/picons/1_0*.png
-
-# create picons symlinks
-#sh ./picons/picons.sh ./picons/picons
+echo "Update picons"
+cd ./picons
+git pull origin master
+cd ..
 
 
 # create the icons folder
-mkdir -p xbmc_icons
+if [ ! -d "./xbmc_icons" ]; then
+ echo "xbmc_icons dir does not exist. Creating it.";
+ mkdir ./xbmc_icons;
+fi
 
 # clean out
+echo "Deleting old xbmc_icons"
 rm xbmc_icons/*
 
 # call the python script in copy mode
-python2 xbmcIconLinks.py -p ./picons/tv/ -m c > createXbmcIonsLinks.sh
+python2 xbmcIconLinks.py -p ./picons/build-source/tv/ -c ./channels.conf -m c > createXbmcIonsLinks.sh
 
 # run the sh
-sh createXbmcIonsLinks.sh 
+sh createXbmcIonsLinks.sh

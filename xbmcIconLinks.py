@@ -11,7 +11,7 @@ class Srindex(object):
 
     srindexInfos = dict()
 
-    def __init__(self, srindex_file = './picons/tv.srindex'):
+    def __init__(self, srindex_file = './picons/build-source/srindex'):
         """Reads the tv.srindex file """
 
         try:
@@ -20,23 +20,18 @@ class Srindex(object):
         except IOError:
             # Not found / not accessible
             sys.exit ('ERROR: Could not open %s' % srindex_file)
-
-        currStation = ''  
         for srindexLine in srindexFile:
-            strippedLine = srindexLine.strip() 
-            # means here starts some channelInformations
-            if strippedLine.startswith('#') :
-                # remove #_ by 2: and strip whitespaces and set it to currStation
-                currStation = strippedLine[2:]    
-                continue    
-            # ignore all --- starting lines    
+            strippedLine = srindexLine.strip()
+            # ignore all --- starting lines
             if strippedLine.startswith('---') :
-                continue 
-            # skip empty lines    
+                continue
+            # skip empty lines
             if not strippedLine :
-                continue    
+                continue
+            # means here starts some channelInformations
+            (stationHash, station) = strippedLine.split('=')
             # line contains hash stuff for the channel which matches Channels so we have hash to channelname
-            self.srindexInfos[strippedLine] = currStation
+            self.srindexInfos[stationHash] = station
 
 
 
@@ -44,14 +39,14 @@ class Channels(Srindex):
     """ Holds all the information and routines related to
         linking VDR channels to picons via their respective
         servicerefs. """
-        
+
     channels = []
 
     def __init__(self, channels_conf = '/etc/vdr/channels.conf', tvonly = False):
         """ Initialize, read and store the channels from
             a given channels.conf. """
 
-        #hier noch den parameter von srindex setzen  
+        #hier noch den parameter von srindex setzen
         super(Channels, self).__init__()
 
         self.tvonly = tvonly
@@ -77,14 +72,14 @@ class Channels(Srindex):
                 and (';' in channelSplit[0])
                 and not (channelSplit[0].split(';')[1] == '(null)')):
                 self.channels.append((channelSplit[0], channelSplit[1:],))
-    
+
 
     def servicerefs(self):
         """ Provides a dictionary of
               ('Channel name': 'serviceref')
             items, e.g.
               ('Das Erste HD;ARD': '2B5C_41B_A401_FFFF0000') """
- 
+
         def _createserviceref(source, freq, vpid, sid, nid, tid):
             """ Subroutine for creating a single service reference.
                 All credit to pipelka (https://github.com/pipelka). """
@@ -176,7 +171,7 @@ class PIcons(Channels):
         super(PIcons, self).__init__(channels_conf = channels_conf,
             tvonly = tvonly)
 
-    
+
         try:
             # List directory containing picons.
             piconDirList = os.listdir(picons_dir)
@@ -204,35 +199,35 @@ class PIcons(Channels):
     def lnscript(self):
         """ Finally, create mapping between picon and serviceref.
             Return the result in form of a shell script. """
-        
+
         links = dict()
         unmatched = []
 
         serviceRefs = self.servicerefs()
         for serviceRef  in serviceRefs:
             # icons not mapped should go into umateched
-            if not self.srindexInfos.has_key(serviceRef) : 
+            if not self.srindexInfos.has_key(serviceRef) :
                 unmatched.append(serviceRef)
                 continue
 
             channelPngName = self.srindexInfos[serviceRef]
             # use the channel name from the channels.conf so xbmc can map it
             xbmcIconName = serviceRefs[serviceRef];
-            links[channelPngName] = (xbmcIconName.rsplit(';', 1)[0].rsplit(',',1)[0])    
-            
+            links[channelPngName] = (xbmcIconName.rsplit(';', 1)[0].rsplit(',',1)[0])
+
             #if serviceRef in self.picons:
             #    channelPngName = serviceRefs[serviceRef]
             #    channelPngName = channelPngName.rsplit(';', 1)[0].rsplit(',',1)[0]
             #    links[serviceRef] = (channelPngName)
             #    continue
 
-            
-        
-        for (iconName, channelName) in sorted(links.iteritems()):            
+
+
+        for (iconName, channelName) in sorted(links.iteritems()):
             #check svg or png
             fileEnding = '.svg'
             if iconName+'.png' in self.picons :
-              fileEnding = '.png'               
+              fileEnding = '.png'
 
             channelName = channelName.replace('/',' ')
             srcPath = os.path.abspath(self.picons_dir+'/'+iconName+fileEnding)
@@ -241,8 +236,8 @@ class PIcons(Channels):
             if self.mode == 'l':
                 print 'ln -sf "%s" "%s"' % (srcPath,destPath)
             elif self.mode == 'c':
-                print 'cp "%s" "%s"' % (srcPath,destPath)  
-        
+                print 'cp "%s" "%s"' % (srcPath,destPath)
+
         # Print unmatched
         if unmatched != []:
             print '# unmatched channels:'
@@ -274,7 +269,7 @@ def main():
         metavar = 'l or c',
         default = 'l',
         help = "mode for creating xbmc icons l means link c means to copy")
-    
+
     argsDict = vars(parser.parse_args())
 
     # Instantiate
